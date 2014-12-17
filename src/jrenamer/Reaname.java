@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Observable;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,7 +23,7 @@ import java.util.logging.Logger;
  *
  * @author qqqq
  */
-public class Reaname implements Runnable {
+public class Reaname extends Observable implements Runnable {
 
     //private ArrayList<File> fileList = new ArrayList<File>();
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -33,7 +34,8 @@ public class Reaname implements Runnable {
     private  String prefix;
     private ArrayList<File> fileList;
     
-    public int progress=0;
+    public float progress=1;
+    public int totalFiles;
 
     public String randomString(int len) {
         StringBuilder sb = new StringBuilder(len);
@@ -47,6 +49,7 @@ public class Reaname implements Runnable {
         this.fileList=fileList;
         this.prefix=prefix;
         data = new Object[fileList.size()][4];
+        totalFiles = fileList.size();
         t = new Thread(this);
         t.start();
 
@@ -58,7 +61,6 @@ public class Reaname implements Runnable {
 
     public void run() {
         int i = -1;
-        fo
         for (File fl : fileList) {
             Log.putInfo("trying to rename: " + fl.getAbsolutePath());
             String path = fl.getAbsolutePath().substring(0, fl.getAbsolutePath().indexOf(fl.getName()));
@@ -78,12 +80,17 @@ public class Reaname implements Runnable {
                     ID3v1 id3v1Tag = mp3file.getId3v1Tag();
                     data[i][2] = id3v1Tag.getArtist();
                     data[i][3] = id3v1Tag.getTitle();
-                }
-                if (mp3file.hasId3v2Tag()) {
+                } else if (mp3file.hasId3v2Tag()) {
                     ID3v2 id3v2Tag = mp3file.getId3v2Tag();
                     data[i][2] = id3v2Tag.getArtist();
                     data[i][3] = id3v2Tag.getTitle();
                 }
+                
+                progress=1+i;
+                Log.putDebug(progress+"% "+i+"/"+totalFiles);
+                stateChanged();
+                t.sleep(1);
+               
 
             } catch (IOException ex) {
                 Log.putDebug(ex.toString());
@@ -91,8 +98,15 @@ public class Reaname implements Runnable {
                 Log.putDebug(ex.toString());
             } catch (InvalidDataException ex) {
                 Log.putDebug(ex.toString());
+            } catch (InterruptedException ex) {
+                Log.putDebug(ex.toString());
             }
         }
 
+    }
+
+    private void stateChanged() {
+        setChanged();
+        notifyObservers();
     }
 }

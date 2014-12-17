@@ -9,6 +9,8 @@ import com.alee.extended.filechooser.WebFileChooserField;
 import com.alee.extended.layout.HorizontalFlowLayout;
 import com.alee.extended.layout.ToolbarLayout;
 import com.alee.extended.layout.VerticalFlowLayout;
+import com.alee.extended.panel.CenterPanel;
+import com.alee.extended.panel.WebOverlay;
 import com.alee.extended.statusbar.WebMemoryBar;
 import com.alee.extended.statusbar.WebStatusBar;
 import javax.swing.SwingUtilities;
@@ -17,10 +19,12 @@ import com.alee.laf.button.WebButton;
 import com.alee.laf.combobox.WebComboBox;
 import com.alee.laf.label.WebLabel;
 import com.alee.laf.panel.WebPanel;
+import com.alee.laf.progressbar.WebProgressBar;
 import com.alee.laf.scroll.WebScrollPane;
 import com.alee.laf.table.WebTable;
 import com.alee.laf.table.renderers.WebTableCellRenderer;
 import com.alee.laf.text.WebTextField;
+import com.alee.utils.swing.EmptyMouseAdapter;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -28,6 +32,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -40,12 +46,14 @@ import javax.swing.table.TableModel;
  *
  * @author qqqq
  */
-public class JRenamer implements  Constants{
+public class JRenamer implements  Constants, Observer{
     private final JFrame frame;
     private final WebTextField urlTextField;
     private final WebFileChooserField prefixFileField;
     private Reaname rnm;
-
+    public WebProgressBar progresBar;
+    private JPanel j;
+    private WebPanel upPanel;
     public JRenamer() {
         frame = new JFrame(PROGRAMM_NAME);
         frame.setMinimumSize(new Dimension(WIDTH, HEIGHT));
@@ -58,7 +66,8 @@ public class JRenamer implements  Constants{
         memoryBar.setPreferredWidth ( memoryBar.getPreferredSize ().width + 20 );
         statusBar.add(memoryBar, ToolbarLayout.END);
         
-        WebPanel upPanel = new WebPanel();
+        
+        upPanel = new WebPanel();
         upPanel.setUndecorated ( false );
         upPanel.setLayout ( new HorizontalFlowLayout() );
         upPanel.setPaintSides ( false, false, true, false );
@@ -79,33 +88,28 @@ public class JRenamer implements  Constants{
         upPanel.add(prefixFileField);
         
         
-        JPanel j=new JPanel();
+        
+        j = new JPanel();
         j.setLayout(new BorderLayout());
-        
-        
-        WebButton okButton = new WebButton ( " OK " );
-        okButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    rnm = new Reaname((ArrayList<File>) prefixFileField.getSelectedFiles(), urlTextField.getText());
-                    WebTable table = new WebTable (new FileTableModel(rnm.data));
-                    WebScrollPane scrollPane = new WebScrollPane ( table );
-                    // Custom column
-        TableColumn column = table.getColumnModel ().getColumn ( 1 );
 
-        // Custom renderer
-        WebTableCellRenderer renderer = new WebTableCellRenderer ();
-        renderer.setToolTipText ( "Click for combo box" );
-        column.setCellRenderer ( renderer );
-                    initColumnSizes(table);
-                    j.add(scrollPane, BorderLayout.CENTER);
-                }
-            });
+        WebButton okButton = new WebButton(" OK ");
+        okButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                rnm = new Reaname((ArrayList<File>) prefixFileField.getSelectedFiles(), urlTextField.getText());
+                rnm.addObserver(JRenamer.this);
+
+                
+                progresBar = new WebProgressBar(0, rnm.totalFiles);
+                progresBar.setStringPainted(true);
+                upPanel.add(progresBar);
+                
+               
+            }
+        });
         upPanel.add(okButton);
-        
+
         //----------------------- end up panel
 
-        
-        
 
         frame.setLayout(new BorderLayout());
         frame.setResizable(true);
@@ -140,8 +144,25 @@ public class JRenamer implements  Constants{
             column.setPreferredWidth ( Math.max ( headerWidth, cellWidth ) );
         }
     }
-    
-    
+ 
+    public void update(Observable o, Object arg) {
+        progresBar.setValue((int) rnm.progress);
+        if (rnm.progress >= rnm.totalFiles) {
+            WebTable table = new WebTable(new FileTableModel(rnm.data));
+            WebScrollPane scrollPane = new WebScrollPane(table);
+            // Custom column
+            TableColumn column = table.getColumnModel().getColumn(1);
+
+            // Custom renderer
+            WebTableCellRenderer renderer = new WebTableCellRenderer();
+            renderer.setToolTipText("Click for combo box");
+            column.setCellRenderer(renderer);
+            initColumnSizes(table);
+            j.add(scrollPane, BorderLayout.CENTER);
+            progresBar.setVisible(false);
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {

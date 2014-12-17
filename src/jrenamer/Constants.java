@@ -10,8 +10,8 @@ package jrenamer;
  * @author qqqq
  */
 public interface Constants {
-    public static final int WIDTH = 660;
-    public static final int HEIGHT = 490;
+    public static final int WIDTH = 860;
+    public static final int HEIGHT = 620;
     
     
     

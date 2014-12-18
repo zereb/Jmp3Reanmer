@@ -15,10 +15,10 @@ import javax.swing.table.AbstractTableModel;
  * @author qqqq
  */
 public class FileTableModel extends AbstractTableModel{
-        private String[] columnNames = { "Old name", "new Name", "Artist (ID3)", "Song name (ID3)" };
+        private String[] columnNames = { "Old name", "Prefix", "Artist (ID3)", "Song name (ID3)" , "Random", "Individual rule"};
         private Object[][] data;
 
-        public final Object[] longValues = { "Jane", "None of the above", "hui", "hui"};
+        public final Object[] longValues = { "Jane", "None of the above", "1", "1","1", "1"};
 
         public FileTableModel(Object[][] data) {
             this.data=data;
@@ -70,4 +70,8 @@ public class FileTableModel extends AbstractTableModel{
             data[ row ][ col ] = value;
             fireTableCellUpdated ( row, col );
         }
+        public Object[][] getData(){
+            return data;
+        }
+        
 }

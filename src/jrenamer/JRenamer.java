@@ -10,6 +10,7 @@ import com.alee.extended.layout.HorizontalFlowLayout;
 import com.alee.extended.layout.ToolbarLayout;
 import com.alee.extended.layout.VerticalFlowLayout;
 import com.alee.extended.panel.CenterPanel;
+import com.alee.extended.panel.GroupPanel;
 import com.alee.extended.panel.WebOverlay;
 import com.alee.extended.statusbar.WebMemoryBar;
 import com.alee.extended.statusbar.WebStatusBar;
@@ -24,6 +25,9 @@ import com.alee.laf.scroll.WebScrollPane;
 import com.alee.laf.table.WebTable;
 import com.alee.laf.table.renderers.WebTableCellRenderer;
 import com.alee.laf.text.WebTextField;
+import com.alee.managers.notification.NotificationIcon;
+import com.alee.managers.notification.NotificationManager;
+import com.alee.managers.notification.WebNotificationPopup;
 import com.alee.utils.swing.EmptyMouseAdapter;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -35,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.ScrollPaneConstants;
@@ -54,6 +59,9 @@ public class JRenamer implements  Constants, Observer{
     public WebProgressBar progresBar;
     private JPanel j;
     private WebPanel upPanel;
+    private WebStatusBar statusBar;
+    private  final WebNotificationPopup notificationPopup;
+    private  WebTextField ruleTexrField;
     public JRenamer() {
         frame = new JFrame(PROGRAMM_NAME);
         frame.setMinimumSize(new Dimension(WIDTH, HEIGHT));
@@ -61,10 +69,15 @@ public class JRenamer implements  Constants, Observer{
         frame.setDefaultCloseOperation(frame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         
-        WebStatusBar statusBar = new WebStatusBar ();
+        
+        statusBar = new WebStatusBar ();
         WebMemoryBar memoryBar = new WebMemoryBar ();
         memoryBar.setPreferredWidth ( memoryBar.getPreferredSize ().width + 20 );
         statusBar.add(memoryBar, ToolbarLayout.END);
+        ruleTexrField = new WebTextField(35);
+        ruleTexrField.setText(STANDART_RULE);
+        statusBar.add(ruleTexrField, ToolbarLayout.START);
+        
         
         
         upPanel = new WebPanel();
@@ -87,7 +100,24 @@ public class JRenamer implements  Constants, Observer{
         
         upPanel.add(prefixFileField);
         
-        
+       
+        notificationPopup = new WebNotificationPopup();
+        notificationPopup.setIcon(NotificationIcon.information);
+
+        final JLabel label = new JLabel("All files was succesfully renamed.");
+        final WebButton button = new WebButton("Show concole log?");
+        button.setRolloverDecoratedOnly(true);
+        button.setDrawFocus(false);
+        button.setLeftRightSpacing(0);
+        button.setBoldFont();
+        button.addActionListener((ActionEvent e1) -> {
+            notificationPopup.hidePopup();
+            
+        });
+        final CenterPanel centerPanel = new CenterPanel(button, false, true);
+        notificationPopup.setContent(new GroupPanel(2, label, centerPanel));
+
+
         
         j = new JPanel();
         j.setLayout(new BorderLayout());
@@ -139,7 +169,7 @@ public class JRenamer implements  Constants, Observer{
 
             comp = table.getDefaultRenderer ( model.getColumnClass ( i ) ).
                     getTableCellRendererComponent ( table, longValues[ i ], false, false, 0, i );
-            cellWidth = comp.getPreferredSize ().width;
+            cellWidth = comp.getPreferredSize ().width;  
 
             column.setPreferredWidth ( Math.max ( headerWidth, cellWidth ) );
         }
@@ -148,7 +178,8 @@ public class JRenamer implements  Constants, Observer{
     public void update(Observable o, Object arg) {
         progresBar.setValue((int) rnm.progress);
         if (rnm.progress >= rnm.totalFiles) {
-            WebTable table = new WebTable(new FileTableModel(rnm.data));
+            FileTableModel ftm;
+            WebTable table = new WebTable(ftm=new FileTableModel(rnm.data));
             WebScrollPane scrollPane = new WebScrollPane(table);
             // Custom column
             TableColumn column = table.getColumnModel().getColumn(1);
@@ -160,6 +191,13 @@ public class JRenamer implements  Constants, Observer{
             initColumnSizes(table);
             j.add(scrollPane, BorderLayout.CENTER);
             progresBar.setVisible(false);
+            WebButton renameButton = new WebButton("Rename", (ActionEvent e) -> {
+                if(rnm.doReaname(ftm.getData(),ruleTexrField.getText())){
+                  NotificationManager.showNotification ( notificationPopup );
+                };
+            });
+            statusBar.add(renameButton);
+
         }
     }
 

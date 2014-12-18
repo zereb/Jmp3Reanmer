@@ -13,11 +13,14 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import static org.mentaregex.Regex.*;
 
 /**
  *
@@ -34,6 +37,9 @@ public class Reaname extends Observable implements Runnable {
     private  String prefix;
     private ArrayList<File> fileList;
     
+    Map<String, Integer> hm = new HashMap<String, Integer>();
+    
+    
     public float progress=1;
     public int totalFiles;
 
@@ -46,9 +52,14 @@ public class Reaname extends Observable implements Runnable {
     }
 
     public Reaname(ArrayList<File> fileList, String prefix) {
+        hm.put("{ARTIST}", 2);
+        hm.put("{PREFIX}", 1);
+        hm.put("{TITLE}", 3);
+        hm.put("{RANDOM}", 4);
+        
         this.fileList=fileList;
         this.prefix=prefix;
-        data = new Object[fileList.size()][4];
+        data = new Object[fileList.size()][6];
         totalFiles = fileList.size();
         t = new Thread(this);
         t.start();
@@ -75,7 +86,7 @@ public class Reaname extends Observable implements Runnable {
                 Log.putInfo("Has custom tag?: " + (mp3file.hasCustomTag() ? "YES" : "NO"));
 
                 data[i][0] = fl.getName();
-                data[i][1] = prefix + "_" + randomString(4);
+                data[i][1] = prefix;
                 if (mp3file.hasId3v1Tag()) {
                     ID3v1 id3v1Tag = mp3file.getId3v1Tag();
                     data[i][2] = id3v1Tag.getArtist();
@@ -85,6 +96,7 @@ public class Reaname extends Observable implements Runnable {
                     data[i][2] = id3v2Tag.getArtist();
                     data[i][3] = id3v2Tag.getTitle();
                 }
+                data[i][4]=randomString(4);
                 
                 progress=1+i;
                 Log.putDebug(progress+"% "+i+"/"+totalFiles);
@@ -105,6 +117,39 @@ public class Reaname extends Observable implements Runnable {
 
     }
 
+    public boolean doReaname(Object[][] data, String rule){
+        int i=-1;
+        String[] commands=match(rule, Constants.REGEX);
+        for (String command : commands) {
+            Log.putInfo(command);
+        }
+
+        
+        
+        for (File fl: fileList) {
+            try {
+                i++;
+                String path = fl.getAbsolutePath().substring(0, fl.getAbsolutePath().indexOf(fl.getName()));
+                String format = fl.getAbsolutePath().substring(fl.getAbsolutePath().length()-3);
+                String newName=path;
+                for (String command : commands) {
+                    
+                    rule.replaceAll(command, (String) data[i][hm.get(command)]);
+//                  newName=path+data[i][1]+data[i][2]+" - "+data[i][3]+"."+format;
+//                    newName=newName+data[i][hm.get(command)];
+                }
+                newName=rule+format;
+                
+                fl.renameTo(new File(newName));
+                Log.putInfo(newName+" renamed");
+            } catch (Exception e) {
+                Log.putDebug(e.toString());
+                e.printStackTrace();
+                return  false;
+            }
+        }
+        return  true;
+    }
     private void stateChanged() {
         setChanged();
         notifyObservers();

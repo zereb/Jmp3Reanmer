@@ -5,6 +5,9 @@
  */
 package jrenamer;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  * @author qqqq
@@ -17,4 +20,7 @@ public interface Constants {
     
     
     public static final String PROGRAMM_NAME = "JRenamer";
+    public static final String STANDART_RULE = "{PREFIX} {ARTIST} - {TITLE}";
+    public static final String REGEX = "\\{[A-Z]{4,7}\\}";
+    
 }
